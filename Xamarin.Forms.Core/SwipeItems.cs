@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace Xamarin.Forms
 {
-	public class SwipeItems : BindableObject, IList<SwipeItem>
+	public class SwipeItems : BindableObject, IList<ISwipeItem>
 	{
-		readonly List<SwipeItem> _internal;
+		readonly List<ISwipeItem> _internal;
 
 		public SwipeItems()
 		{
-			_internal = new List<SwipeItem>();
+			_internal = new List<ISwipeItem>();
 		}
 
 		public static readonly BindableProperty ModeProperty = BindableProperty.Create(nameof(Mode), typeof(SwipeMode), typeof(SwipeItems), SwipeMode.Reveal);
@@ -27,13 +27,13 @@ namespace Xamarin.Forms
 			set { SetValue(SwipeBehaviorOnInvokedProperty, value); }
 		}
 
-		public SwipeItem this[int index] { get => _internal[index]; set => _internal[index] = value; }
+		public ISwipeItem this[int index] { get => _internal[index]; set => _internal[index] = value; }
 
 		public int Count => _internal.Count;
 
 		public bool IsReadOnly => false;
 
-		public void Add(SwipeItem item)
+		public void Add(ISwipeItem item)
 		{
 			_internal.Add(item);
 		}
@@ -43,32 +43,32 @@ namespace Xamarin.Forms
 			_internal.Clear();
 		}
 
-		public bool Contains(SwipeItem item)
+		public bool Contains(ISwipeItem item)
 		{
 			return _internal.Contains(item);
 		}
 
-		public void CopyTo(SwipeItem[] array, int arrayIndex)
+		public void CopyTo(ISwipeItem[] array, int arrayIndex)
 		{
 			_internal.CopyTo(array, arrayIndex);
 		}
 
-		public IEnumerator<SwipeItem> GetEnumerator()
+		public IEnumerator<ISwipeItem> GetEnumerator()
 		{
 			return _internal.GetEnumerator();
 		}
 
-		public int IndexOf(SwipeItem item)
+		public int IndexOf(ISwipeItem item)
 		{
 			return _internal.IndexOf(item);
 		}
 
-		public void Insert(int index, SwipeItem item)
+		public void Insert(int index, ISwipeItem item)
 		{
 			_internal.Insert(index, item);
 		}
 
-		public bool Remove(SwipeItem item)
+		public bool Remove(ISwipeItem item)
 		{
 			return _internal.Remove(item);
 		}

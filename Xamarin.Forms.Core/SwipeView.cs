@@ -14,12 +14,12 @@ namespace Xamarin.Forms
 		{
 			_platformConfigurationRegistry = new Lazy<PlatformConfigurationRegistry<SwipeView>>(() => new PlatformConfigurationRegistry<SwipeView>(this));
 		}
-  
+
 		public static readonly BindableProperty LeftItemsProperty = BindableProperty.Create(nameof(LeftItems), typeof(SwipeItems), typeof(SwipeView), null, BindingMode.TwoWay, null);
 		public static readonly BindableProperty RightItemsProperty = BindableProperty.Create(nameof(RightItems), typeof(SwipeItems), typeof(SwipeView), null, BindingMode.TwoWay, null);
 		public static readonly BindableProperty TopItemsProperty = BindableProperty.Create(nameof(TopItems), typeof(SwipeItems), typeof(SwipeView), null, BindingMode.TwoWay, null);
 		public static readonly BindableProperty BottomItemsProperty = BindableProperty.Create(nameof(BottomItems), typeof(SwipeItems), typeof(SwipeView), null, BindingMode.TwoWay, null);
-  
+
 		public SwipeItems LeftItems
 		{
 			get { return (SwipeItems)GetValue(LeftItemsProperty); }
@@ -45,17 +45,39 @@ namespace Xamarin.Forms
 		}
 
 		public event EventHandler<SwipeStartedEventArgs> SwipeStarted;
+		public event EventHandler<SwipeChangingEventArgs> SwipeChanging;
 		public event EventHandler<SwipeEndedEventArgs> SwipeEnded;
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public void SendSwipeStarted(SwipeStartedEventArgs args) => SwipeStarted?.Invoke(this, args);
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
+		public void SendSwipeChanging(SwipeChangingEventArgs args) => SwipeChanging?.Invoke(this, args);
+
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public void SendSwipeEnded(SwipeEndedEventArgs args) => SwipeEnded?.Invoke(this, args);
-  
-		public class SwipeStartedEventArgs : EventArgs
+
+		public class BaseSwipeEventArgs : EventArgs
 		{
-			public SwipeStartedEventArgs(SwipeDirection swipeDirection, double offset)
+			public BaseSwipeEventArgs(SwipeDirection swipeDirection)
+			{
+				SwipeDirection = swipeDirection;
+			}
+
+			public SwipeDirection SwipeDirection { get; set; }
+		}
+
+		public class SwipeStartedEventArgs : BaseSwipeEventArgs
+		{
+			public SwipeStartedEventArgs(SwipeDirection swipeDirection) : base(swipeDirection)
+			{
+
+			}
+		}
+
+		public class SwipeChangingEventArgs : EventArgs
+		{
+			public SwipeChangingEventArgs(SwipeDirection swipeDirection, double offset)
 			{
 				SwipeDirection = swipeDirection;
 				Offset = offset;
@@ -65,14 +87,12 @@ namespace Xamarin.Forms
 			public double Offset { get; set; }
 		}
 
-		public class SwipeEndedEventArgs : EventArgs
+		public class SwipeEndedEventArgs : BaseSwipeEventArgs
 		{
-			public SwipeEndedEventArgs(SwipeDirection swipeDirection)
+			public SwipeEndedEventArgs(SwipeDirection swipeDirection) : base(swipeDirection)
 			{
-				SwipeDirection = swipeDirection;
-			}
 
-			public SwipeDirection SwipeDirection { get; set; }
+			}
 		}
 
 		public IPlatformElementConfiguration<T, SwipeView> On<T>() where T : IConfigPlatform

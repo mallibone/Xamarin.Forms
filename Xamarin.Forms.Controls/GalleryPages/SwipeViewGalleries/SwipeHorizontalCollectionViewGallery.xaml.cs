@@ -3,9 +3,9 @@
 namespace Xamarin.Forms.Controls.GalleryPages.SwipeViewGalleries
 {
 	[Preserve(AllMembers = true)]
-	public partial class SwipeCollectionViewGallery : ContentPage
+	public partial class SwipeHorizontalCollectionViewGallery : ContentPage
 	{
-		public SwipeCollectionViewGallery()
+		public SwipeHorizontalCollectionViewGallery()
 		{
 			InitializeComponent();
 			BindingContext = new SwipeViewGalleryViewModel();

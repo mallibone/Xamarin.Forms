@@ -10,6 +10,7 @@ using Xamarin.Forms.PlatformConfiguration.AndroidSpecific;
 using static Xamarin.Forms.SwipeView;
 using AButton = Android.Support.V7.Widget.AppCompatButton;
 using APointF = Android.Graphics.PointF;
+using ATextAlignment = Android.Views.TextAlignment;
 using AView = Android.Views.View;
 using Specifics = Xamarin.Forms.PlatformConfiguration.AndroidSpecific.SwipeView;
 
@@ -20,8 +21,9 @@ namespace Xamarin.Forms.Platform.Android
 		internal const string SwipeView = "Xamarin.SwipeView";
 		internal const string CloseSwipeView = "Xamarin.CloseSwipeView";
 
-		const int SwipeThreshold = 250;
-		const int SwipeItemWidth = 80;
+		const int SwipeThreshold = 250; 
+  		const int SwipeThresholdMargin = 6;
+		const int SwipeItemWidth = 100;
 		const long SwipeAnimationDuration = 200;
 
 		readonly Context _context;
@@ -370,6 +372,8 @@ namespace Xamarin.Forms.Platform.Android
 			else
 				ResetSwipe();
 
+			RaiseSwipeChanging();
+
 			return true;
 		}
 
@@ -434,7 +438,7 @@ namespace Xamarin.Forms.Platform.Android
 
 			if (items == null)
 				return;
-	
+
 			_actionView = new LinearLayoutCompat(_context);
 
 			using (var layoutParams = new LayoutParams(LayoutParams.MatchParent, LayoutParams.MatchParent))
@@ -443,30 +447,23 @@ namespace Xamarin.Forms.Platform.Android
 			_actionView.Orientation = LinearLayoutCompat.Horizontal;
 
 			int i = 0;
-			foreach (var swipeItem in items)
+   
+			foreach (var item in items)
 			{
-				var swipeButton = new AButton(_context)
+				if (item is SwipeItem formsSwipeItem)
 				{
-					Background = new ColorDrawable(swipeItem.BackgroundColor.ToAndroid()),
-					Text = swipeItem.Text
-				};
+					var swipeItem = CreateSwipeItem(formsSwipeItem);
+					_actionView.AddView(swipeItem);
+				}
 
-				var textColor = GetSwipeItemColor(swipeItem.BackgroundColor);
-				swipeButton.SetTextColor(textColor.ToAndroid());
-
-				_ = this.ApplyDrawableAsync(swipeItem, MenuItem.IconImageSourceProperty, Context, drawable =>
+				if (item is CustomSwipeItem formsCustomSwipeItem)
 				{
-					int h = _contentView.Height / 3;
-					int w = _contentView.Height / 3;
-					drawable.SetBounds(0, 0, w, h);
+					var customSwipeItem = CreateCustomSwipeItem(formsCustomSwipeItem);
+					_actionView.AddView(customSwipeItem);
 
-					drawable.SetColorFilter(textColor.ToAndroid(), PorterDuff.Mode.SrcAtop);
-					swipeButton.SetCompoundDrawables(null, drawable, null, null);
-				});
-
-				swipeButton.SetOnTouchListener(null);
-
-				_actionView.AddView(swipeButton);
+					formsCustomSwipeItem.Layout(new Rectangle(0, 0, SwipeItemWidth, _context.FromPixels(_contentView.Height)));
+					formsCustomSwipeItem.Content?.Layout(new Rectangle(0, 0, SwipeItemWidth, _context.FromPixels(_contentView.Height)));
+				}
 
 				i++;
 			}
@@ -476,6 +473,42 @@ namespace Xamarin.Forms.Platform.Android
 
 			_actionView.Layout(0, 0, _contentView.Width, _contentView.Height);
 			LayoutSwipeItems();
+		}
+
+		AView CreateSwipeItem(SwipeItem formsSwipeItem)
+		{
+			var swipeButton = new AButton(_context)
+			{
+				Background = new ColorDrawable(formsSwipeItem.BackgroundColor.ToAndroid()),
+				Text = formsSwipeItem.Text
+			};
+
+			var textColor = GetSwipeItemColor(formsSwipeItem.BackgroundColor);
+			swipeButton.SetTextColor(textColor.ToAndroid());
+			swipeButton.TextAlignment = ATextAlignment.Center;
+			_ = this.ApplyDrawableAsync(formsSwipeItem, MenuItem.IconImageSourceProperty, Context, drawable =>
+			{
+				int r = _contentView.Height / 3;
+				int b = _contentView.Height / 3;
+				drawable.SetBounds(0, 0, r, b);
+
+				drawable.SetColorFilter(textColor.ToAndroid(), PorterDuff.Mode.SrcAtop);
+				swipeButton.SetCompoundDrawables(null, drawable, null, null);
+			});
+
+			swipeButton.SetPadding(0, _contentView.Height / 4, 0, 0);
+			swipeButton.SetOnTouchListener(null);
+
+			return swipeButton;
+		}
+
+		AView CreateCustomSwipeItem(CustomSwipeItem customSwipeItem)
+		{
+			var renderer = Platform.CreateRenderer(customSwipeItem, _context);
+			Platform.SetRenderer(customSwipeItem, renderer);
+			var swipeItem = renderer?.View;
+
+			return swipeItem;
 		}
 
 		void UpdateSwipeTransitionMode()
@@ -771,7 +804,9 @@ namespace Xamarin.Forms.Platform.Android
 					swipeThreshold = (SwipeThreshold > contentHeight) ? contentHeight : SwipeThreshold;
 			}
 
-			return swipeThreshold;
+			if (isHorizontal)
+				return swipeThreshold - SwipeThresholdMargin;
+			return swipeThreshold - SwipeThresholdMargin / 2;
 		}
 
 		void ProcessTouchSwipeItems(APointF point)
@@ -804,19 +839,23 @@ namespace Xamarin.Forms.Platform.Android
 				}
 			}
 		}
-  
-		void ExecuteSwipeItem(SwipeItem swipeItem)
+
+		void ExecuteSwipeItem(ISwipeItem iSwipeItem)
 		{
-			if (swipeItem == null)
+			if (iSwipeItem == null)
 				return;
 
-			ICommand cmd = swipeItem.Command;
-			object parameter = swipeItem.CommandParameter;
+			ICommand cmd = iSwipeItem.Command;
+			object parameter = iSwipeItem.CommandParameter;
 
 			if (cmd != null && cmd.CanExecute(parameter))
 				cmd.Execute(parameter);
 
-			swipeItem.OnInvoked();
+			if (iSwipeItem is SwipeItem swipeItem)
+				swipeItem.OnInvoked();
+
+			if (iSwipeItem is CustomSwipeItem customSwipeItem)
+				customSwipeItem.OnInvoked();
 		}
 
 		void OnClose(object sender)
@@ -829,12 +868,24 @@ namespace Xamarin.Forms.Platform.Android
 
 		void RaiseSwipeStarted()
 		{
-			var swipeStartedEventArgs = new SwipeStartedEventArgs(_swipeDirection, _swipeOffset);
+			if (!ValidateSwipeDirection())
+				return;
+		 
+		  	var swipeStartedEventArgs = new SwipeStartedEventArgs(_swipeDirection);
 			Element.SendSwipeStarted(swipeStartedEventArgs);
+		}
+
+		void RaiseSwipeChanging()
+		{
+			var swipeChangingEventArgs = new SwipeChangingEventArgs(_swipeDirection, _swipeOffset);
+			Element.SendSwipeChanging(swipeChangingEventArgs);
 		}
 
 		void RaiseSwipeEnded()
 		{
+			if (!ValidateSwipeDirection())
+				return;
+
 			var swipeEndedEventArgs = new SwipeEndedEventArgs(_swipeDirection);
 			Element.SendSwipeEnded(swipeEndedEventArgs);
 		}

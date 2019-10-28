@@ -1,9 +1,18 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Windows.Input;
 
 namespace Xamarin.Forms
 {
-	public class SwipeItem : ContextItem
+	public interface ISwipeItem
+	{
+		ICommand Command { get; set; }
+		object CommandParameter { get; set; }
+
+		event EventHandler<SwipeItemInvokedEventArgs> Invoked;
+	}
+
+	public class SwipeItem : ContextItem, ISwipeItem
 	{
 		public static readonly BindableProperty BackgroundColorProperty = BindableProperty.Create(nameof(BackgroundColor), typeof(Color), typeof(SwipeItem), Color.Default);
 
@@ -19,13 +28,37 @@ namespace Xamarin.Forms
 		public void OnInvoked() => Invoked?.Invoke(this, new SwipeItemInvokedEventArgs(this));
 	}
 
+	public class CustomSwipeItem : ContentView, ISwipeItem
+	{
+		public static readonly BindableProperty CommandProperty = BindableProperty.Create(nameof(Command), typeof(ICommand), typeof(CustomSwipeItem));
+
+		public static readonly BindableProperty CommandParameterProperty = BindableProperty.Create(nameof(CommandParameter), typeof(object), typeof(CustomSwipeItem));
+
+		public ICommand Command
+		{
+			get => (ICommand)GetValue(CommandProperty);
+			set => SetValue(CommandProperty, value);
+		}
+
+		public object CommandParameter
+		{
+			get => GetValue(CommandParameterProperty);
+			set => SetValue(CommandParameterProperty, value);
+		}
+
+		public event EventHandler<SwipeItemInvokedEventArgs> Invoked;
+
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public void OnInvoked() => Invoked?.Invoke(this, new SwipeItemInvokedEventArgs(this));
+	}
+
 	public class SwipeItemInvokedEventArgs : EventArgs
 	{
-		public SwipeItemInvokedEventArgs(SwipeItem swipeItem)
+		public SwipeItemInvokedEventArgs(ISwipeItem swipeItem)
 		{
 			SwipeItem = swipeItem;
 		}
 
-		public SwipeItem SwipeItem { get; set; }
+		public ISwipeItem SwipeItem { get; set; }
 	}
 }
