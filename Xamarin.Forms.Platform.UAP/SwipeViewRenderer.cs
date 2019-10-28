@@ -277,27 +277,30 @@ namespace Xamarin.Forms.Platform.UWP
             items.PropertyChanged += OnSwipeItemsPropertyChanged;
             swipeItems.Mode = GetSwipeMode(items.Mode);
 
-			foreach (var formsSwipeItem in items)
+			foreach (var item in items)
 			{
-				var textColor = GetSwipeItemColor(formsSwipeItem.BackgroundColor);
+				if (item is SwipeItem formsSwipeItem)
+				{
+					var textColor = GetSwipeItemColor(formsSwipeItem.BackgroundColor);
 
-				var windowsSwipeItem = new WSwipeItem
-                {
-                    Background = formsSwipeItem.BackgroundColor.IsDefault ? null : formsSwipeItem.BackgroundColor.ToBrush(),
-					Foreground = textColor.ToBrush(),
-					IconSource = formsSwipeItem.IconImageSource.ToWindowsIconSource(),
-                    Text = formsSwipeItem.Text,
-                    Command = formsSwipeItem.Command,
-                    CommandParameter = formsSwipeItem.CommandParameter,
-                    BehaviorOnInvoked = GetSwipeBehaviorOnInvoked(items.SwipeBehaviorOnInvoked)
-                };
+					var windowsSwipeItem = new WSwipeItem
+					{
+						Background = formsSwipeItem.BackgroundColor.IsDefault ? null : formsSwipeItem.BackgroundColor.ToBrush(),
+						Foreground = textColor.ToBrush(),
+						IconSource = formsSwipeItem.IconImageSource.ToWindowsIconSource(),
+						Text = formsSwipeItem.Text,
+						Command = formsSwipeItem.Command,
+						CommandParameter = formsSwipeItem.CommandParameter,
+						BehaviorOnInvoked = GetSwipeBehaviorOnInvoked(items.SwipeBehaviorOnInvoked)
+					};
 
-                formsSwipeItem.PropertyChanged += OnSwipeItemPropertyChanged;
-                windowsSwipeItem.Invoked += OnSwipeItemInvoked;
+					formsSwipeItem.PropertyChanged += OnSwipeItemPropertyChanged;
+					windowsSwipeItem.Invoked += OnSwipeItemInvoked;
 
-                swipeItems.Add(windowsSwipeItem);
+					swipeItems.Add(windowsSwipeItem);
 
-                FillSwipeItemsCache(swipeDirection, windowsSwipeItem, formsSwipeItem);
+					FillSwipeItemsCache(swipeDirection, windowsSwipeItem, formsSwipeItem);
+				}
             }
 
             return swipeItems;
